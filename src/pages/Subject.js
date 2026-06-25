@@ -28,15 +28,13 @@ export default function Subject() {
       })
       .catch((e) => alive && setError(e?.response?.data?.message || "Failed to load subject"))
       .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [sKey]);
 
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center" data-testid="subject-loading">
-        <Loader2 className="h-7 w-7 animate-spin text-white/60" />
+        <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -46,35 +44,35 @@ export default function Subject() {
       <Link
         to="/dashboard"
         data-testid="subject-back-link"
-        className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white mb-6"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> dashboard
       </Link>
 
       <div
-        className={`rounded-xl bg-[#121212] border border-white/10 border-l-4 ${meta.border} p-6 mb-8`}
+        className={`rounded-xl bg-card border border-border border-l-4 ${meta.border} p-6 mb-8`}
       >
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <div className={`text-[10px] uppercase tracking-[0.22em] ${meta.text} mb-2`}>
               {meta.label}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
               {meta.full}
             </h1>
-            <p className="text-white/50 text-sm mt-1.5">
+            <p className="text-muted-foreground text-sm mt-1.5">
               {topics.length} topic{topics.length === 1 ? "" : "s"} to crush.
             </p>
           </div>
           {progress && (
             <div className="min-w-[240px]">
-              <div className="flex items-center justify-between text-xs text-white/50 mb-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                 <span>
                   {progress.watchedVideos} / {progress.totalVideos} videos
                 </span>
                 <span className={meta.text}>{progress.percent}%</span>
               </div>
-              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   data-testid="subject-progress-bar"
                   className={`h-full rounded-full ${meta.bg}`}
@@ -89,14 +87,14 @@ export default function Subject() {
       {error && (
         <div
           data-testid="subject-error"
-          className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-md px-4 py-3 mb-6"
+          className="text-sm text-rose-500 bg-rose-500/10 border border-rose-500/30 rounded-md px-4 py-3 mb-6"
         >
           {error}
         </div>
       )}
 
       {topics.length === 0 ? (
-        <div className="text-center text-white/40 py-16" data-testid="subject-empty">
+        <div className="text-center text-muted-foreground py-16" data-testid="subject-empty">
           No topics found for this subject yet.
         </div>
       ) : (
@@ -106,18 +104,18 @@ export default function Subject() {
               key={t}
               to={`/subject/${sKey}/${encodeURIComponent(t)}`}
               data-testid={`subject-topic-card-${t}`}
-              className={`group rounded-xl bg-[#121212] border border-white/10 hover:border-white/30 p-5 transition-all hover:-translate-y-0.5 ${meta.glow} hover:shadow-[0_0_60px_-12px_rgba(255,255,255,0.15)]`}
+              className={`group rounded-xl bg-card border border-border hover:border-border/60 p-5 transition-all hover:-translate-y-0.5 ${meta.glow} hover:shadow-[0_0_60px_-12px_rgba(255,255,255,0.15)]`}
             >
               <div className="flex items-center justify-between">
-                <div className={`h-9 w-9 rounded-md bg-white/5 border ${meta.border} border-opacity-50 grid place-items-center`}>
+                <div className={`h-9 w-9 rounded-md bg-muted border ${meta.border} border-opacity-50 grid place-items-center`}>
                   <BookOpen className={`h-4 w-4 ${meta.text}`} strokeWidth={1.75} />
                 </div>
                 <ArrowUpRight
-                  className="h-4 w-4 text-white/30 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
+                  className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
                   strokeWidth={1.75}
                 />
               </div>
-              <div className="mt-4 text-white text-base font-medium tracking-tight capitalize">
+              <div className="mt-4 text-foreground text-base font-medium tracking-tight capitalize">
                 {t}
               </div>
               <div className={`text-[10px] uppercase tracking-[0.22em] mt-1 ${meta.text}`}>
