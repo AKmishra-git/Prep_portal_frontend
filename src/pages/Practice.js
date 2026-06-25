@@ -15,7 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-// Auto-generate LeetCode URL from video title
+// Auto-generate LeetCode URL from video title (DSA only)
 function toLeetCodeUrl(title) {
   const slug = title
     .toLowerCase()
@@ -26,7 +26,7 @@ function toLeetCodeUrl(title) {
   return `https://leetcode.com/problems/${slug}/`;
 }
 
-// LeetCode search fallback
+// LeetCode search fallback (DSA only)
 function toLeetCodeSearch(title) {
   return `https://leetcode.com/problemset/?search=${encodeURIComponent(title)}`;
 }
@@ -53,7 +53,7 @@ export default function Practice() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [activeSubject, setActiveSubject] = useState("dsa"); // ✅ Default to DSA
+  const [activeSubject, setActiveSubject] = useState("all");
   const [expandedTopics, setExpandedTopics] = useState({});
   const [solvedSet, setSolvedSet] = useState(() => {
     try {
@@ -88,11 +88,17 @@ export default function Practice() {
                         ...v,
                         subject,
                         topic,
+                        // LeetCode fields only for DSA
                         resolvedLeetcodeUrl:
-                          v.leetcodeUrl && v.leetcodeUrl.trim()
-                            ? v.leetcodeUrl
-                            : toLeetCodeUrl(v.title),
-                        isAutoUrl: !v.leetcodeUrl || !v.leetcodeUrl.trim(),
+                          subject === "dsa"
+                            ? v.leetcodeUrl && v.leetcodeUrl.trim()
+                              ? v.leetcodeUrl
+                              : toLeetCodeUrl(v.title)
+                            : null,
+                        isAutoUrl:
+                          subject === "dsa"
+                            ? !v.leetcodeUrl || !v.leetcodeUrl.trim()
+                            : false,
                         difficulty: guessDifficulty(v.title),
                       });
                     });
@@ -220,8 +226,17 @@ export default function Practice() {
           />
         </div>
 
-        {/* ✅ "All" button removed — only subject buttons remain */}
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveSubject("all")}
+            className={`px-3 py-2 rounded-md text-xs font-medium uppercase tracking-[0.15em] transition-all border ${
+              activeSubject === "all"
+                ? "bg-foreground text-background border-foreground"
+                : "bg-muted border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All
+          </button>
           {SUBJECTS.map((s) => (
             <button
               key={s.key}
@@ -238,22 +253,24 @@ export default function Practice() {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-5 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Easy
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-amber-500" /> Medium
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-rose-500" /> Hard
-        </span>
-        <span className="flex items-center gap-1.5 ml-auto">
-          <Code2 className="h-3 w-3 text-amber-500" /> = direct link &nbsp;|&nbsp;
-          <Search className="h-3 w-3 text-cyan-500" /> = search fallback
-        </span>
-      </div>
+      {/* Legend — only show for DSA */}
+      {(activeSubject === "dsa" || activeSubject === "all") && (
+        <div className="flex items-center gap-4 mb-5 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Easy
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-500" /> Medium
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Hard
+          </span>
+          <span className="flex items-center gap-1.5 ml-auto">
+            <Code2 className="h-3 w-3 text-amber-500" /> = direct link &nbsp;|&nbsp;
+            <Search className="h-3 w-3 text-cyan-500" /> = search fallback
+          </span>
+        </div>
+      )}
 
       {/* Empty state */}
       {filtered.length === 0 && (
@@ -273,6 +290,7 @@ export default function Practice() {
           const subjectVideos = Object.values(topicsMap).flat();
           const subjectTotal = subjectVideos.length;
           const subjectSolved = subjectVideos.filter((v) => solvedSet.has(v._id)).length;
+          const isDSA = subjectKey === "dsa";
 
           return (
             <div key={subjectKey} className={`rounded-xl border border-border border-l-4 ${meta.border} overflow-hidden`}>
@@ -376,10 +394,12 @@ export default function Practice() {
                                   </div>
                                 </div>
 
-                                {/* Difficulty badge */}
-                                <span className={`hidden sm:inline-flex shrink-0 text-[10px] px-2 py-0.5 rounded-full border font-medium uppercase tracking-[0.1em] ${diffColor}`}>
-                                  {v.difficulty}
-                                </span>
+                                {/* Difficulty badge — DSA only */}
+                                {isDSA && (
+                                  <span className={`hidden sm:inline-flex shrink-0 text-[10px] px-2 py-0.5 rounded-full border font-medium uppercase tracking-[0.1em] ${diffColor}`}>
+                                    {v.difficulty}
+                                  </span>
+                                )}
 
                                 {/* Watch video */}
                                 <Link
@@ -391,25 +411,27 @@ export default function Practice() {
                                   <span className="hidden sm:inline">Watch</span>
                                 </Link>
 
-                                {/* Solve on LeetCode */}
-                                <a
-                                  href={v.resolvedLeetcodeUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title={v.isAutoUrl ? "Auto-matched LeetCode link (may need adjustment)" : "Verified LeetCode link"}
-                                  className={`shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border transition-all ${
-                                    v.isAutoUrl
-                                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/20"
-                                      : "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
-                                  }`}
-                                >
-                                  <Code2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                                  <span className="hidden sm:inline">Solve</span>
-                                  <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
-                                </a>
+                                {/* Solve on LeetCode — DSA only */}
+                                {isDSA && (
+                                  <a
+                                    href={v.resolvedLeetcodeUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={v.isAutoUrl ? "Auto-matched LeetCode link (may need adjustment)" : "Verified LeetCode link"}
+                                    className={`shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border transition-all ${
+                                      v.isAutoUrl
+                                        ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/20"
+                                        : "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
+                                    }`}
+                                  >
+                                    <Code2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                    <span className="hidden sm:inline">Solve</span>
+                                    <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+                                  </a>
+                                )}
 
-                                {/* LeetCode search fallback */}
-                                {v.isAutoUrl && (
+                                {/* LeetCode search fallback — DSA only */}
+                                {isDSA && v.isAutoUrl && (
                                   <a
                                     href={toLeetCodeSearch(v.title)}
                                     target="_blank"
