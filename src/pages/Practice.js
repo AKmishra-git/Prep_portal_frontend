@@ -53,7 +53,7 @@ export default function Practice() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [activeSubject, setActiveSubject] = useState("dsa");
+  const [activeSubject, setActiveSubject] = useState("dsa"); // ✅ Default to DSA
   const [expandedTopics, setExpandedTopics] = useState({});
   const [solvedSet, setSolvedSet] = useState(() => {
     try {
@@ -88,7 +88,6 @@ export default function Practice() {
                         ...v,
                         subject,
                         topic,
-                        // Use stored leetcodeUrl if exists, otherwise auto-generate
                         resolvedLeetcodeUrl:
                           v.leetcodeUrl && v.leetcodeUrl.trim()
                             ? v.leetcodeUrl
@@ -221,17 +220,8 @@ export default function Practice() {
           />
         </div>
 
+        {/* ✅ "All" button removed — only subject buttons remain */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setActiveSubject("all")}
-            className={`px-3 py-2 rounded-md text-xs font-medium uppercase tracking-[0.15em] transition-all border ${
-              activeSubject === "all"
-                ? "bg-foreground text-background border-foreground"
-                : "bg-muted border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            All
-          </button>
           {SUBJECTS.map((s) => (
             <button
               key={s.key}
@@ -301,7 +291,6 @@ export default function Practice() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Subject progress bar */}
                   <div className="hidden sm:flex items-center gap-2">
                     <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
                       <div
