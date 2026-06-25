@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { LogOut, Moon, Search, Sun, Terminal } from "lucide-react";
+import { LogOut, Moon, Search, Sun, Terminal, Code2 } from "lucide-react";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -46,20 +46,35 @@ export default function Navbar() {
             { to: "/subject/cn", label: "CN" },
             { to: "/subject/os", label: "OS" },
             { to: "/subject/dbms", label: "DBMS" },
+            { to: "/practice", label: "Practice" },
           ].map((item) => {
-            const active = loc.pathname.startsWith(item.to);
+            const active =
+              item.to === "/practice"
+                ? loc.pathname === "/practice"
+                : loc.pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 data-testid={`nav-link-${item.label.toLowerCase()}`}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  active
+                  item.to === "/practice"
+                    ? active
+                      ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                      : "text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 border border-transparent"
+                    : active
                     ? "bg-muted text-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                {item.label}
+                {item.to === "/practice" ? (
+                  <span className="flex items-center gap-1.5">
+                    <Code2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    {item.label}
+                  </span>
+                ) : (
+                  item.label
+                )}
               </Link>
             );
           })}

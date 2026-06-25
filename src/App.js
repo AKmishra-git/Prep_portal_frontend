@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Subject from "@/pages/Subject";
 import Topic from "@/pages/Topic";
 import Search from "@/pages/Search";
+import Practice from "@/pages/Practice";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
               <Route path="/subject/:subject" element={<Subject />} />
               <Route path="/subject/:subject/:topic" element={<Topic />} />
               <Route path="/search" element={<Search />} />
+              <Route path="/practice" element={<Practice />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
