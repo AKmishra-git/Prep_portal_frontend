@@ -29,8 +29,11 @@ function renderMarkdown(text) {
       /`([^`]+)`/g,
       '<code class="px-1 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[12px]">$1</code>'
     )
-    .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white">$1</strong>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/^### (.+)$/gm, '<h3 class="text-cyan-300 font-semibold text-sm mt-3 mb-1">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-white font-bold text-sm mt-4 mb-1">$1</h2>')
+    .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-white/80">$1</li>')
     .replace(/\n/g, "<br/>");
   work = work.replace(/\u0000(\d+)\u0000/g, (_m, i) => {
     const code = escape(blocks[parseInt(i, 10)]);
@@ -160,7 +163,7 @@ export default function ChatbotWidget({ context, profileStats }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hey 👋 I'm **PrepBuddy**. Ask me anything about DSA, OOPS, CN, OS or DBMS. I can explain concepts, walk through approaches or review code.\n\nOr click **📅 Study Plan** below to get a personalized day-by-day prep plan!",
+      text: "Hey 👋 I'm **PrepBuddy**. Ask me anything about DSA, OOPS, CN, OS or DBMS. I can explain concepts, walk through approaches or review code.\n\nOr click **📅 Study Plan** above to get a personalized day-by-day prep plan!",
     },
   ]);
   const scrollRef = useRef(null);
@@ -173,26 +176,42 @@ export default function ChatbotWidget({ context, profileStats }) {
 
   // ✅ Called when user submits the study plan modal
   const handleStudyPlanGenerate = async ({ days, interviewDate, weakSubjects }) => {
-    // Build a detailed prompt using profile stats
     const subjectProgress = profileStats?.stats
-      ?.map((s) => `${s.subject}: ${s.watchedVideos}/${s.totalVideos} videos (${s.percent}%)`)
-      .join(", ") || "No progress data available";
+      ?.map((s) => `${s.subject}: ${s.watchedVideos}/${s.totalVideos} videos (${s.percent}% done)`)
+      .join("\n") || "No progress data available";
 
-    const promptText = `Generate a detailed ${days}-day placement preparation study plan for me.
+    const promptText = `Generate a complete and detailed ${days}-day placement preparation study plan for me.
 
 My current progress:
-- ${subjectProgress}
+${subjectProgress}
 - Current streak: ${profileStats?.streak ?? 0} days
 - Total videos watched: ${profileStats?.totalWatched ?? 0} out of ${profileStats?.totalVideos ?? 0}
 ${interviewDate ? `- Interview date: ${interviewDate}` : ""}
-${weakSubjects.length > 0 ? `- My weak subjects: ${weakSubjects.join(", ")}` : ""}
+${weakSubjects.length > 0 ? `- My weak subjects that need more time: ${weakSubjects.join(", ")}` : ""}
 
-Please create a day-by-day study plan covering DSA, OOPS, CN, OS, and DBMS. 
-Give more time to my weak subjects. 
-Include specific topics to cover each day and how many hours to spend.
-Format it clearly with Day 1, Day 2, etc.`;
+Instructions:
+- Create a day-by-day plan for all ${days} days. Do not stop early.
+- Give more days and time to weak subjects.
+- Cover DSA, OOPS, CN, OS, and DBMS across the plan.
+- Include specific topics for each day.
+- Format EXACTLY like this for every single day:
 
-    setMessages((m) => [...m, { role: "user", text: `📅 Generate a ${days}-day study plan for me` }]);
+**Day 1 - [Main Topic]**
+- Morning (2hrs): [specific topic to study]
+- Afternoon (2hrs): [specific topic to study]
+- Evening (2hrs): [practice problems or revision]
+
+**Day 2 - [Main Topic]**
+- Morning (2hrs): ...
+- Afternoon (2hrs): ...
+- Evening (2hrs): ...
+
+Continue this format for all ${days} days without skipping any day.`;
+
+    setMessages((m) => [
+      ...m,
+      { role: "user", text: `📅 Generate a ${days}-day personalized study plan for me` },
+    ]);
     setSending(true);
 
     const updatedHistory = [
@@ -204,11 +223,21 @@ Format it clearly with Day 1, Day 2, etc.`;
       const systemTurn = [
         {
           role: "user",
-          parts: [{ text: SYSTEM_PROMPT + (context ? `\n\nPage context: ${context}` : "") }],
+          parts: [
+            {
+              text:
+                SYSTEM_PROMPT +
+                (context ? `\n\nPage context: ${context}` : ""),
+            },
+          ],
         },
         {
           role: "model",
-          parts: [{ text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS." }],
+          parts: [
+            {
+              text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS.",
+            },
+          ],
         },
       ];
 
@@ -219,7 +248,7 @@ Format it clearly with Day 1, Day 2, etc.`;
           contents: [...systemTurn, ...updatedHistory],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2048, // more tokens for study plan
+            maxOutputTokens: 4096, // ✅ increased for full study plan
           },
         }),
       });
@@ -272,11 +301,21 @@ Format it clearly with Day 1, Day 2, etc.`;
       const systemTurn = [
         {
           role: "user",
-          parts: [{ text: SYSTEM_PROMPT + (context ? `\n\nPage context: ${context}` : "") }],
+          parts: [
+            {
+              text:
+                SYSTEM_PROMPT +
+                (context ? `\n\nPage context: ${context}` : ""),
+            },
+          ],
         },
         {
           role: "model",
-          parts: [{ text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS." }],
+          parts: [
+            {
+              text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS.",
+            },
+          ],
         },
       ];
 
@@ -365,7 +404,7 @@ Format it clearly with Day 1, Day 2, etc.`;
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* ✅ Study Plan Button in header */}
+            {/* ✅ Study Plan Button */}
             <button
               onClick={() => setShowStudyPlanModal(true)}
               title="Generate Study Plan"
