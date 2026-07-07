@@ -9,6 +9,28 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// ✅ intercept every response globally
+// if backend returns 401 (token blacklisted or expired), redirect to login
+// excludes auth routes to prevent infinite redirect loop
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const url = error.config?.url;
+
+    if (
+      status === 401 &&
+      !url?.includes("/login") &&
+      !url?.includes("/register") &&
+      !url?.includes("/me")
+    ) {
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export const localApi = api;
 export const PREP_BASE = BACKEND_URL;
 export const LOCAL_BASE = BACKEND_URL;
