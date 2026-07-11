@@ -1,15 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Send, X, Sparkles, Loader2, CalendarDays } from "lucide-react";
 
-// 🔑 API key loaded from environment variable
-const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
-
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-const SYSTEM_PROMPT = `You are PrepBuddy, an expert interview preparation assistant for software engineering roles.
-You specialize in DSA (Data Structures & Algorithms), OOPs, Computer Networks (CN), Operating Systems (OS), and DBMS.
-You explain concepts clearly, walk through problem-solving approaches, and review code when asked.
-Keep responses concise, structured, and beginner-friendly unless the user asks for advanced depth.`;
+// ❌ REMOVED: no more GEMINI_API_KEY or GEMINI_API_URL on the frontend
+const CHAT_API_URL = `${process.env.REACT_APP_API_URL}/api/chat`;
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -42,7 +35,7 @@ function renderMarkdown(text) {
   return <div dangerouslySetInnerHTML={{ __html: work }} />;
 }
 
-// ✅ Study Plan Modal
+// ✅ Study Plan Modal — unchanged
 function StudyPlanModal({ onClose, onGenerate }) {
   const [days, setDays] = useState(7);
   const [interviewDate, setInterviewDate] = useState("");
@@ -77,7 +70,6 @@ function StudyPlanModal({ onClose, onGenerate }) {
           </button>
         </div>
 
-        {/* Interview Date */}
         <div className="mb-4">
           <label className="text-white/60 text-xs uppercase tracking-widest mb-1.5 block">
             Interview Date (optional)
@@ -98,7 +90,6 @@ function StudyPlanModal({ onClose, onGenerate }) {
           />
         </div>
 
-        {/* Days */}
         <div className="mb-4">
           <label className="text-white/60 text-xs uppercase tracking-widest mb-1.5 block">
             Number of Days: {days}
@@ -117,7 +108,6 @@ function StudyPlanModal({ onClose, onGenerate }) {
           </div>
         </div>
 
-        {/* Weak subjects */}
         <div className="mb-6">
           <label className="text-white/60 text-xs uppercase tracking-widest mb-2 block">
             Weak Subjects (select all that apply)
@@ -139,7 +129,6 @@ function StudyPlanModal({ onClose, onGenerate }) {
           </div>
         </div>
 
-        {/* Generate button */}
         <button
           onClick={handleGenerate}
           className="w-full py-2.5 rounded-md bg-gradient-to-r from-cyan-400 to-purple-500 text-black font-semibold text-sm hover:brightness-110 transition-all"
@@ -174,11 +163,33 @@ export default function ChatbotWidget({ context, profileStats }) {
     }
   }, [messages, open]);
 
-  // ✅ Called when user submits the study plan modal
+  // ✅ Shared helper — calls YOUR backend, not Gemini directly
+  const callChatApi = async (updatedHistory, maxOutputTokens) => {
+    const response = await fetch(CHAT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // sends the jwt_token cookie, since this route is authMiddleware-protected
+      body: JSON.stringify({
+        history: updatedHistory,
+        context,
+        maxOutputTokens,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data?.error || "Chat request failed");
+    }
+
+    return data.reply;
+  };
+
   const handleStudyPlanGenerate = async ({ days, interviewDate, weakSubjects }) => {
-    const subjectProgress = profileStats?.stats
-      ?.map((s) => `${s.subject}: ${s.watchedVideos}/${s.totalVideos} videos (${s.percent}% done)`)
-      .join("\n") || "No progress data available";
+    const subjectProgress =
+      profileStats?.stats
+        ?.map((s) => `${s.subject}: ${s.watchedVideos}/${s.totalVideos} videos (${s.percent}% done)`)
+        .join("\n") || "No progress data available";
 
     const promptText = `Generate a complete and detailed ${days}-day placement preparation study plan for me.
 
@@ -214,69 +225,18 @@ Continue this format for all ${days} days without skipping any day.`;
     ]);
     setSending(true);
 
-    const updatedHistory = [
-      ...history,
-      { role: "user", parts: [{ text: promptText }] },
-    ];
+    const updatedHistory = [...history, { role: "user", parts: [{ text: promptText }] }];
 
     try {
-      const systemTurn = [
-        {
-          role: "user",
-          parts: [
-            {
-              text:
-                SYSTEM_PROMPT +
-                (context ? `\n\nPage context: ${context}` : ""),
-            },
-          ],
-        },
-        {
-          role: "model",
-          parts: [
-            {
-              text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS.",
-            },
-          ],
-        },
-      ];
+      const reply = await callChatApi(updatedHistory, 4096);
 
-      const response = await fetch(GEMINI_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [...systemTurn, ...updatedHistory],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4096, // ✅ increased for full study plan
-          },
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error?.message || "Gemini API error");
-      }
-
-      const reply =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn't generate a study plan.";
-
-      setHistory([
-        ...updatedHistory,
-        { role: "model", parts: [{ text: reply }] },
-      ]);
-
+      setHistory([...updatedHistory, { role: "model", parts: [{ text: reply }] }]);
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
     } catch (err) {
-      console.error("Gemini error:", err);
+      console.error("Chat error:", err);
       setMessages((m) => [
         ...m,
-        {
-          role: "assistant",
-          text: `⚠️ ${err.message || "I hit a snag reaching the AI. Please try again."}`,
-        },
+        { role: "assistant", text: `⚠️ ${err.message || "I hit a snag reaching the AI. Please try again."}` },
       ]);
     } finally {
       setSending(false);
@@ -292,69 +252,18 @@ Continue this format for all ${days} days without skipping any day.`;
     setMessages((m) => [...m, { role: "user", text }]);
     setSending(true);
 
-    const updatedHistory = [
-      ...history,
-      { role: "user", parts: [{ text }] },
-    ];
+    const updatedHistory = [...history, { role: "user", parts: [{ text }] }];
 
     try {
-      const systemTurn = [
-        {
-          role: "user",
-          parts: [
-            {
-              text:
-                SYSTEM_PROMPT +
-                (context ? `\n\nPage context: ${context}` : ""),
-            },
-          ],
-        },
-        {
-          role: "model",
-          parts: [
-            {
-              text: "Got it! I'm PrepBuddy, ready to help with DSA, OOPs, CN, OS and DBMS.",
-            },
-          ],
-        },
-      ];
+      const reply = await callChatApi(updatedHistory, 1024);
 
-      const response = await fetch(GEMINI_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [...systemTurn, ...updatedHistory],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error?.message || "Gemini API error");
-      }
-
-      const reply =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn't generate a response.";
-
-      setHistory([
-        ...updatedHistory,
-        { role: "model", parts: [{ text: reply }] },
-      ]);
-
+      setHistory([...updatedHistory, { role: "model", parts: [{ text: reply }] }]);
       setMessages((m) => [...m, { role: "assistant", text: reply }]);
     } catch (err) {
-      console.error("Gemini error:", err);
+      console.error("Chat error:", err);
       setMessages((m) => [
         ...m,
-        {
-          role: "assistant",
-          text: `⚠️ ${err.message || "I hit a snag reaching the AI. Please try again in a moment."}`,
-        },
+        { role: "assistant", text: `⚠️ ${err.message || "I hit a snag reaching the AI. Please try again in a moment."}` },
       ]);
     } finally {
       setSending(false);
@@ -363,7 +272,6 @@ Continue this format for all ${days} days without skipping any day.`;
 
   return (
     <>
-      {/* Study Plan Modal */}
       {showStudyPlanModal && (
         <StudyPlanModal
           onClose={() => setShowStudyPlanModal(false)}
@@ -371,7 +279,6 @@ Continue this format for all ${days} days without skipping any day.`;
         />
       )}
 
-      {/* Floating trigger */}
       <button
         onClick={() => setOpen((o) => !o)}
         data-testid="chatbot-toggle-button"
@@ -384,13 +291,11 @@ Continue this format for all ${days} days without skipping any day.`;
         <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 animate-pulse ring-2 ring-[#0A0A0A]" />
       </button>
 
-      {/* Panel */}
       <div
         data-testid="chatbot-panel"
         className={`fixed bottom-24 right-6 z-[60] w-[min(92vw,400px)] h-[min(75vh,580px)] flex flex-col rounded-2xl border border-white/10 bg-black/70 backdrop-blur-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] transition-all duration-300 origin-bottom-right
           ${open ? "scale-100 opacity-100" : "scale-90 opacity-0 pointer-events-none"}`}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-gradient-to-br from-cyan-400 to-purple-500 grid place-items-center">
@@ -404,7 +309,6 @@ Continue this format for all ${days} days without skipping any day.`;
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* ✅ Study Plan Button */}
             <button
               onClick={() => setShowStudyPlanModal(true)}
               title="Generate Study Plan"
@@ -424,7 +328,6 @@ Continue this format for all ${days} days without skipping any day.`;
           </div>
         </div>
 
-        {/* Messages */}
         <div
           ref={scrollRef}
           data-testid="chatbot-messages"
@@ -450,11 +353,7 @@ Continue this format for all ${days} days without skipping any day.`;
           )}
         </div>
 
-        {/* Input */}
-        <form
-          onSubmit={send}
-          className="border-t border-white/10 p-3 flex items-center gap-2"
-        >
+        <form onSubmit={send} className="border-t border-white/10 p-3 flex items-center gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
