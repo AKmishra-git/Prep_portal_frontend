@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bot, Send, X, Sparkles, Loader2, CalendarDays } from "lucide-react";
 
 // ❌ REMOVED: no more GEMINI_API_KEY or GEMINI_API_URL on the frontend
-const CHAT_API_URL = `${process.env.REACT_APP_API_URL}/api/chat`;
+const CHAT_API_URL = `${process.env.REACT_APP_BACKEND_URL}/api/chat`;
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
