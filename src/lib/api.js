@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const PRIMARY_URL = process.env.REACT_APP_BACKEND_URL || "https://prephubbackend-production.up.railway.app";
+const PRIMARY_URL = process.env.REACT_APP_BACKEND_URL || "https://prephub-backend-2.onrender.com";
 
 const api = axios.create({
   baseURL: PRIMARY_URL,
